@@ -6,7 +6,6 @@ import type { AuthUser } from '../types/auth-user';
 
 type JwtAccessPayload = {
   sub: number | string;
-  email: string;
 };
 
 @Injectable()
@@ -24,6 +23,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!Number.isInteger(id) || id < 1) {
       throw new UnauthorizedException();
     }
-    return { id, email: payload.email };
+    return { id };
   }
 }

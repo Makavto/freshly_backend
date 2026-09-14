@@ -104,7 +104,7 @@ PostgreSQL и MinIO при этом должны быть доступны по 
 
 Основные маршруты:
 
-- `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout`
+- `POST /api/auth/guest`, `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`
 - `GET/POST /api/catalogs/categories`, `GET/POST /api/catalogs/storage-locations`, `GET /api/catalogs/statuses`
 - `POST/GET /api/products`, `GET/PATCH/DELETE /api/products/:id`
 - `POST /api/products/:id/photo` (`multipart/form-data`, поле `photo`)

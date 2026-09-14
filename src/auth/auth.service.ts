@@ -13,11 +13,13 @@ import { AuthTokensDto } from './dto/auth-tokens.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { GUEST_PRODUCT_LIMIT } from './guest.constants';
 
 type UserRecord = {
   id: number;
-  email: string;
-  nickname: string;
+  email: string | null;
+  nickname: string | null;
+  isGuest: boolean;
 };
 
 @Injectable()
@@ -28,40 +30,29 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
-  async register(dto: RegisterDto): Promise<AuthTokensDto> {
-    const [existingEmail, existingNickname] = await Promise.all([
-      this.prisma.user.findUnique({ where: { email: dto.email } }),
-      this.prisma.user.findFirst({
-        where: { nickname: { equals: dto.nickname, mode: 'insensitive' } },
-      }),
-    ]);
-    if (existingEmail) {
-      throw new ConflictException('Email is already registered');
-    }
-    if (existingNickname) {
-      throw new ConflictException('Nickname is already taken');
-    }
+  async createGuest(): Promise<AuthTokensDto> {
+    const user = await this.prisma.user.create({
+      data: { isGuest: true },
+    });
+    return this.issueTokens(user);
+  }
 
-    const passwordHash = await argon2.hash(dto.password);
-    try {
-      const user = await this.prisma.user.create({
-        data: {
-          email: dto.email,
-          nickname: dto.nickname,
-          passwordHash,
-        },
-      });
-      return this.issueTokens(user);
-    } catch (error) {
-      this.rethrowUnique(error);
+  async register(
+    dto: RegisterDto,
+    currentUserId?: number,
+  ): Promise<AuthTokensDto> {
+    if (currentUserId !== undefined) {
+      return this.upgradeGuest(currentUserId, dto);
     }
+    await this.assertCredentialsFree(dto.email, dto.nickname);
+    return this.createRegisteredUser(dto);
   }
 
   async login(dto: LoginDto): Promise<AuthTokensDto> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    if (!user) {
+    if (!user || user.isGuest || !user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -122,6 +113,74 @@ export class AuthService {
     return this.toUserDto(user);
   }
 
+  private async upgradeGuest(
+    userId: number,
+    dto: RegisterDto,
+  ): Promise<AuthTokensDto> {
+    const current = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!current) {
+      throw new UnauthorizedException('User not found');
+    }
+    if (!current.isGuest) {
+      throw new ConflictException('Already registered');
+    }
+
+    await this.assertCredentialsFree(dto.email, dto.nickname, userId);
+    const passwordHash = await argon2.hash(dto.password);
+    try {
+      const user = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          email: dto.email,
+          nickname: dto.nickname,
+          passwordHash,
+          isGuest: false,
+        },
+      });
+      return this.issueTokens(user);
+    } catch (error) {
+      this.rethrowUnique(error);
+    }
+  }
+
+  private async createRegisteredUser(dto: RegisterDto): Promise<AuthTokensDto> {
+    const passwordHash = await argon2.hash(dto.password);
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: dto.email,
+          nickname: dto.nickname,
+          passwordHash,
+          isGuest: false,
+        },
+      });
+      return this.issueTokens(user);
+    } catch (error) {
+      this.rethrowUnique(error);
+    }
+  }
+
+  private async assertCredentialsFree(
+    email: string,
+    nickname: string,
+    exceptUserId?: number,
+  ): Promise<void> {
+    const [existingEmail, existingNickname] = await Promise.all([
+      this.prisma.user.findUnique({ where: { email } }),
+      this.prisma.user.findFirst({
+        where: { nickname: { equals: nickname, mode: 'insensitive' } },
+      }),
+    ]);
+    if (existingEmail && existingEmail.id !== exceptUserId) {
+      throw new ConflictException('Email is already registered');
+    }
+    if (existingNickname && existingNickname.id !== exceptUserId) {
+      throw new ConflictException('Nickname is already taken');
+    }
+  }
+
   private async issueTokens(user: UserRecord): Promise<AuthTokensDto> {
     const accessExpiresIn =
       this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m';
@@ -129,7 +188,7 @@ export class AuthService {
       this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
 
     const accessToken = await this.jwt.signAsync(
-      { sub: user.id, email: user.email },
+      { sub: user.id },
       {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         expiresIn: accessExpiresIn as `${number}${'s' | 'm' | 'h' | 'd'}`,
@@ -159,15 +218,21 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: this.toUserDto(user),
+      user: await this.toUserDto(user),
     };
   }
 
-  private toUserDto(user: UserRecord): UserResponseDto {
+  private async toUserDto(user: UserRecord): Promise<UserResponseDto> {
+    const productCount = await this.prisma.product.count({
+      where: { userId: user.id },
+    });
     return {
       id: user.id,
       email: user.email,
       nickname: user.nickname,
+      isGuest: user.isGuest,
+      productLimit: user.isGuest ? GUEST_PRODUCT_LIMIT : null,
+      productCount,
     };
   }
 

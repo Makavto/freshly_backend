@@ -1,10 +1,12 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
+import { GUEST_PRODUCT_LIMIT } from '../auth/guest.constants';
 import {
   DEFAULT_CATEGORY_ID,
   DEFAULT_STORAGE_LOCATION_ID,
@@ -38,6 +40,7 @@ export class ProductsService {
     userId: number,
     dto: CreateProductDto,
   ): Promise<ProductResponseDto> {
+    await this.assertGuestProductLimit(userId);
     const categoryId = dto.categoryId ?? DEFAULT_CATEGORY_ID;
     const storageLocationId =
       dto.storageLocationId ?? DEFAULT_STORAGE_LOCATION_ID;
@@ -200,6 +203,25 @@ export class ProductsService {
       throw new NotFoundException('Product not found');
     }
     return product;
+  }
+
+  private async assertGuestProductLimit(userId: number): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isGuest: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (!user.isGuest) {
+      return;
+    }
+    const productCount = await this.prisma.product.count({
+      where: { userId },
+    });
+    if (productCount >= GUEST_PRODUCT_LIMIT) {
+      throw new ForbiddenException('Guest product limit reached');
+    }
   }
 
   private async assertCatalogAccess(

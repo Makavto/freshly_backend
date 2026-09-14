@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -14,8 +15,10 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 import type { AuthUser } from './types/auth-user';
 import { AuthService } from './auth.service';
 import { AuthTokensDto } from './dto/auth-tokens.dto';
@@ -29,11 +32,26 @@ import { UserResponseDto } from './dto/user-response.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
-  @ApiOperation({ summary: 'Регистрация' })
+  @Post('guest')
+  @ApiOperation({ summary: 'Гостевой аккаунт для пробного режима' })
   @ApiCreatedResponse({ type: AuthTokensDto })
-  register(@Body() dto: RegisterDto): Promise<AuthTokensDto> {
-    return this.authService.register(dto);
+  createGuest(): Promise<AuthTokensDto> {
+    return this.authService.createGuest();
+  }
+
+  @Post('register')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Регистрация. С гостевым Bearer — апгрейд того же аккаунта',
+  })
+  @ApiCreatedResponse({ type: AuthTokensDto })
+  register(
+    @Req() request: Request,
+    @Body() dto: RegisterDto,
+  ): Promise<AuthTokensDto> {
+    const current = request.user as AuthUser | undefined;
+    return this.authService.register(dto, current?.id);
   }
 
   @Post('login')

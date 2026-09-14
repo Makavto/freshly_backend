@@ -1,12 +1,21 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UserResponseDto {
   @ApiProperty()
   id!: number;
 
-  @ApiProperty()
-  email!: string;
+  @ApiPropertyOptional({ nullable: true, type: String })
+  email!: string | null;
+
+  @ApiPropertyOptional({ nullable: true, type: String })
+  nickname!: string | null;
 
   @ApiProperty()
-  nickname!: string;
+  isGuest!: boolean;
+
+  @ApiPropertyOptional({ nullable: true, type: Number })
+  productLimit!: number | null;
+
+  @ApiProperty()
+  productCount!: number;
 }
