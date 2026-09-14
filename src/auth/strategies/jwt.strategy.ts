@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { AuthUser } from '../types/auth-user';
 
 type JwtAccessPayload = {
-  sub: string;
+  sub: number | string;
   email: string;
 };
 
@@ -20,6 +20,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtAccessPayload): AuthUser {
-    return { id: payload.sub, email: payload.email };
+    const id = Number(payload.sub);
+    if (!Number.isInteger(id) || id < 1) {
+      throw new UnauthorizedException();
+    }
+    return { id, email: payload.email };
   }
 }

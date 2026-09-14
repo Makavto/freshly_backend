@@ -7,7 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseFilePipe,
-  ParseUUIDPipe,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -74,7 +74,7 @@ export class ProductsController {
   @ApiOkResponse({ type: ProductResponseDto })
   findOne(
     @CurrentUser() user: AuthUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseIntPipe) id: number,
   ): Promise<ProductResponseDto> {
     return this.productsService.findOne(user.id, id);
   }
@@ -84,7 +84,7 @@ export class ProductsController {
   @ApiOkResponse({ type: ProductResponseDto })
   update(
     @CurrentUser() user: AuthUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateProductDto,
   ): Promise<ProductResponseDto> {
     return this.productsService.update(user.id, id, dto);
@@ -96,7 +96,7 @@ export class ProductsController {
   @ApiNoContentResponse()
   remove(
     @CurrentUser() user: AuthUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseIntPipe) id: number,
   ): Promise<void> {
     return this.productsService.remove(user.id, id);
   }
@@ -122,7 +122,7 @@ export class ProductsController {
   @ApiOkResponse({ type: ProductResponseDto })
   uploadPhoto(
     @CurrentUser() user: AuthUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseIntPipe) id: number,
     @UploadedFile(
       new ParseFilePipe({
         fileIsRequired: true,
@@ -139,7 +139,7 @@ export class ProductsController {
   @ApiOkResponse({ type: ProductResponseDto })
   removePhoto(
     @CurrentUser() user: AuthUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseIntPipe) id: number,
   ): Promise<ProductResponseDto> {
     return this.productsService.removePhoto(user.id, id);
   }

@@ -4,10 +4,10 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsDateString,
   IsEnum,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   Min,
   MinLength,
@@ -41,11 +41,15 @@ export class CreateProductDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
-  categoryId?: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  categoryId?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
-  storageLocationId?: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  storageLocationId?: number;
 }

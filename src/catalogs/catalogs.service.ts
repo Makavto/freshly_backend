@@ -8,7 +8,7 @@ import { CreateCatalogItemDto } from './dto/create-catalog-item.dto';
 export class CatalogsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listCategories(userId: string): Promise<CatalogItemDto[]> {
+  async listCategories(userId: number): Promise<CatalogItemDto[]> {
     const items = await this.prisma.category.findMany({
       where: { OR: [{ userId: null }, { userId }] },
       orderBy: [{ userId: 'asc' }, { name: 'asc' }],
@@ -17,7 +17,7 @@ export class CatalogsService {
   }
 
   async createCategory(
-    userId: string,
+    userId: number,
     dto: CreateCatalogItemDto,
   ): Promise<CatalogItemDto> {
     try {
@@ -30,7 +30,7 @@ export class CatalogsService {
     }
   }
 
-  async listStorageLocations(userId: string): Promise<CatalogItemDto[]> {
+  async listStorageLocations(userId: number): Promise<CatalogItemDto[]> {
     const items = await this.prisma.storageLocation.findMany({
       where: { OR: [{ userId: null }, { userId }] },
       orderBy: [{ userId: 'asc' }, { name: 'asc' }],
@@ -39,7 +39,7 @@ export class CatalogsService {
   }
 
   async createStorageLocation(
-    userId: string,
+    userId: number,
     dto: CreateCatalogItemDto,
   ): Promise<CatalogItemDto> {
     try {
@@ -60,7 +60,7 @@ export class CatalogsService {
     ];
   }
 
-  private toDto(item: { id: string; name: string; userId: string | null }) {
+  private toDto(item: { id: number; name: string; userId: number | null }) {
     return {
       id: item.id,
       name: item.name,

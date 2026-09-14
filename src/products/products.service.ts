@@ -35,7 +35,7 @@ export class ProductsService {
   ) {}
 
   async create(
-    userId: string,
+    userId: number,
     dto: CreateProductDto,
   ): Promise<ProductResponseDto> {
     const categoryId = dto.categoryId ?? DEFAULT_CATEGORY_ID;
@@ -59,7 +59,7 @@ export class ProductsService {
   }
 
   async findAll(
-    userId: string,
+    userId: number,
     query: QueryProductsDto,
   ): Promise<PaginatedProductsDto> {
     const page = query.page ?? 1;
@@ -105,14 +105,14 @@ export class ProductsService {
     };
   }
 
-  async findOne(userId: string, id: string): Promise<ProductResponseDto> {
+  async findOne(userId: number, id: number): Promise<ProductResponseDto> {
     const product = await this.getOwnedProduct(userId, id);
     return this.toResponse(product);
   }
 
   async update(
-    userId: string,
-    id: string,
+    userId: number,
+    id: number,
     dto: UpdateProductDto,
   ): Promise<ProductResponseDto> {
     const current = await this.getOwnedProduct(userId, id);
@@ -143,7 +143,7 @@ export class ProductsService {
     return this.toResponse(product);
   }
 
-  async remove(userId: string, id: string): Promise<void> {
+  async remove(userId: number, id: number): Promise<void> {
     const product = await this.getOwnedProduct(userId, id);
     if (product.photoKey) {
       await this.storage.delete(product.photoKey);
@@ -152,8 +152,8 @@ export class ProductsService {
   }
 
   async uploadPhoto(
-    userId: string,
-    id: string,
+    userId: number,
+    id: number,
     file: Express.Multer.File,
   ): Promise<ProductResponseDto> {
     this.assertPhoto(file);
@@ -175,7 +175,7 @@ export class ProductsService {
     return this.toResponse(updated);
   }
 
-  async removePhoto(userId: string, id: string): Promise<ProductResponseDto> {
+  async removePhoto(userId: number, id: number): Promise<ProductResponseDto> {
     const product = await this.getOwnedProduct(userId, id);
     if (product.photoKey) {
       await this.storage.delete(product.photoKey);
@@ -189,8 +189,8 @@ export class ProductsService {
   }
 
   private async getOwnedProduct(
-    userId: string,
-    id: string,
+    userId: number,
+    id: number,
   ): Promise<ProductWithRelations> {
     const product = await this.prisma.product.findFirst({
       where: { id, userId },
@@ -203,9 +203,9 @@ export class ProductsService {
   }
 
   private async assertCatalogAccess(
-    userId: string,
-    categoryId: string,
-    storageLocationId: string,
+    userId: number,
+    categoryId: number,
+    storageLocationId: number,
   ): Promise<void> {
     const [category, location] = await Promise.all([
       this.prisma.category.findFirst({

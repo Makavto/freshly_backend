@@ -6,8 +6,9 @@ CREATE TYPE "ProductUnit" AS ENUM ('PIECE', 'GRAM', 'KILOGRAM', 'MILLILITER', 'L
 
 -- CreateTable
 CREATE TABLE "User" (
-    "id" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
     "email" TEXT NOT NULL,
+    "nickname" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -17,8 +18,8 @@ CREATE TABLE "User" (
 
 -- CreateTable
 CREATE TABLE "RefreshToken" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
     "tokenHash" TEXT NOT NULL,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "revokedAt" TIMESTAMP(3),
@@ -29,9 +30,9 @@ CREATE TABLE "RefreshToken" (
 
 -- CreateTable
 CREATE TABLE "Category" (
-    "id" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
-    "userId" TEXT,
+    "userId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -40,9 +41,9 @@ CREATE TABLE "Category" (
 
 -- CreateTable
 CREATE TABLE "StorageLocation" (
-    "id" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
-    "userId" TEXT,
+    "userId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -51,14 +52,14 @@ CREATE TABLE "StorageLocation" (
 
 -- CreateTable
 CREATE TABLE "Product" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
     "expiresAt" DATE NOT NULL,
     "quantity" DECIMAL(10,2) NOT NULL DEFAULT 1,
     "unit" "ProductUnit",
-    "categoryId" TEXT NOT NULL,
-    "storageLocationId" TEXT NOT NULL,
+    "categoryId" INTEGER NOT NULL,
+    "storageLocationId" INTEGER NOT NULL,
     "photoKey" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -68,6 +69,12 @@ CREATE TABLE "Product" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_nickname_key" ON "User"("nickname");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_nickname_lower_key" ON "User" (lower("nickname"));
 
 -- CreateIndex
 CREATE UNIQUE INDEX "RefreshToken_tokenHash_key" ON "RefreshToken"("tokenHash");
@@ -120,21 +127,24 @@ ALTER TABLE "Product" ADD CONSTRAINT "Product_categoryId_fkey" FOREIGN KEY ("cat
 ALTER TABLE "Product" ADD CONSTRAINT "Product_storageLocationId_fkey" FOREIGN KEY ("storageLocationId") REFERENCES "StorageLocation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 INSERT INTO "Category" ("id", "name", "userId", "updatedAt") VALUES
-  ('00000000-0000-4000-8000-000000000001', 'Без категории', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000002', 'Молочные', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000003', 'Мясо и рыба', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000004', 'Овощи', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000005', 'Фрукты', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000006', 'Выпечка', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000007', 'Напитки', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000008', 'Заморозка', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000009', 'Бакалея', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-00000000000a', 'Другое', NULL, CURRENT_TIMESTAMP);
+  (1, 'Без категории', NULL, CURRENT_TIMESTAMP),
+  (2, 'Молочные', NULL, CURRENT_TIMESTAMP),
+  (3, 'Мясо и рыба', NULL, CURRENT_TIMESTAMP),
+  (4, 'Овощи', NULL, CURRENT_TIMESTAMP),
+  (5, 'Фрукты', NULL, CURRENT_TIMESTAMP),
+  (6, 'Выпечка', NULL, CURRENT_TIMESTAMP),
+  (7, 'Напитки', NULL, CURRENT_TIMESTAMP),
+  (8, 'Заморозка', NULL, CURRENT_TIMESTAMP),
+  (9, 'Бакалея', NULL, CURRENT_TIMESTAMP),
+  (10, 'Другое', NULL, CURRENT_TIMESTAMP);
 
 INSERT INTO "StorageLocation" ("id", "name", "userId", "updatedAt") VALUES
-  ('00000000-0000-4000-8000-000000000101', 'Не указано', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000102', 'Холодильник', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000103', 'Морозилка', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000104', 'Кухонный шкаф', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000105', 'Кладовая', NULL, CURRENT_TIMESTAMP),
-  ('00000000-0000-4000-8000-000000000106', 'Другое', NULL, CURRENT_TIMESTAMP);
+  (1, 'Не указано', NULL, CURRENT_TIMESTAMP),
+  (2, 'Холодильник', NULL, CURRENT_TIMESTAMP),
+  (3, 'Морозилка', NULL, CURRENT_TIMESTAMP),
+  (4, 'Кухонный шкаф', NULL, CURRENT_TIMESTAMP),
+  (5, 'Кладовая', NULL, CURRENT_TIMESTAMP),
+  (6, 'Другое', NULL, CURRENT_TIMESTAMP);
+
+SELECT setval(pg_get_serial_sequence('"Category"', 'id'), (SELECT MAX(id) FROM "Category"));
+SELECT setval(pg_get_serial_sequence('"StorageLocation"', 'id'), (SELECT MAX(id) FROM "StorageLocation"));

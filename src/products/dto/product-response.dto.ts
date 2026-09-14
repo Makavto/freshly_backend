@@ -5,7 +5,7 @@ import { ProductStatus } from '../product-status';
 
 export class ProductResponseDto {
   @ApiProperty()
-  id!: string;
+  id!: number;
 
   @ApiProperty()
   name!: string;
@@ -20,10 +20,10 @@ export class ProductResponseDto {
   unit!: ProductUnit | null;
 
   @ApiProperty()
-  categoryId!: string;
+  categoryId!: number;
 
   @ApiProperty()
-  storageLocationId!: string;
+  storageLocationId!: number;
 
   @ApiProperty({ type: CatalogItemDto })
   category!: CatalogItemDto;

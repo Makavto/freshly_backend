@@ -1,14 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import {
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Max,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { ProductStatus } from '../product-status';
 
 export enum ProductSortBy {
@@ -33,13 +25,17 @@ export class QueryProductsDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
-  categoryId?: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  categoryId?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
-  storageLocationId?: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  storageLocationId?: number;
 
   @ApiPropertyOptional({ enum: ProductStatus })
   @IsOptional()

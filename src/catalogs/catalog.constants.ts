@@ -1,25 +1,24 @@
-export const DEFAULT_CATEGORY_ID = '00000000-0000-4000-8000-000000000001';
-export const DEFAULT_STORAGE_LOCATION_ID =
-  '00000000-0000-4000-8000-000000000101';
+export const DEFAULT_CATEGORY_ID = 1;
+export const DEFAULT_STORAGE_LOCATION_ID = 1;
 
-export const PRESET_CATEGORIES: { id: string; name: string }[] = [
+export const PRESET_CATEGORIES: { id: number; name: string }[] = [
   { id: DEFAULT_CATEGORY_ID, name: 'Без категории' },
-  { id: '00000000-0000-4000-8000-000000000002', name: 'Молочные' },
-  { id: '00000000-0000-4000-8000-000000000003', name: 'Мясо и рыба' },
-  { id: '00000000-0000-4000-8000-000000000004', name: 'Овощи' },
-  { id: '00000000-0000-4000-8000-000000000005', name: 'Фрукты' },
-  { id: '00000000-0000-4000-8000-000000000006', name: 'Выпечка' },
-  { id: '00000000-0000-4000-8000-000000000007', name: 'Напитки' },
-  { id: '00000000-0000-4000-8000-000000000008', name: 'Заморозка' },
-  { id: '00000000-0000-4000-8000-000000000009', name: 'Бакалея' },
-  { id: '00000000-0000-4000-8000-00000000000a', name: 'Другое' },
+  { id: 2, name: 'Молочные' },
+  { id: 3, name: 'Мясо и рыба' },
+  { id: 4, name: 'Овощи' },
+  { id: 5, name: 'Фрукты' },
+  { id: 6, name: 'Выпечка' },
+  { id: 7, name: 'Напитки' },
+  { id: 8, name: 'Заморозка' },
+  { id: 9, name: 'Бакалея' },
+  { id: 10, name: 'Другое' },
 ];
 
-export const PRESET_STORAGE_LOCATIONS: { id: string; name: string }[] = [
+export const PRESET_STORAGE_LOCATIONS: { id: number; name: string }[] = [
   { id: DEFAULT_STORAGE_LOCATION_ID, name: 'Не указано' },
-  { id: '00000000-0000-4000-8000-000000000102', name: 'Холодильник' },
-  { id: '00000000-0000-4000-8000-000000000103', name: 'Морозилка' },
-  { id: '00000000-0000-4000-8000-000000000104', name: 'Кухонный шкаф' },
-  { id: '00000000-0000-4000-8000-000000000105', name: 'Кладовая' },
-  { id: '00000000-0000-4000-8000-000000000106', name: 'Другое' },
+  { id: 2, name: 'Холодильник' },
+  { id: 3, name: 'Морозилка' },
+  { id: 4, name: 'Кухонный шкаф' },
+  { id: 5, name: 'Кладовая' },
+  { id: 6, name: 'Другое' },
 ];

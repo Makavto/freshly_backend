@@ -6,6 +6,12 @@ import {
 
 const prisma = new PrismaClient();
 
+async function syncIdSequence(table: 'Category' | 'StorageLocation') {
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"${table}"', 'id'), COALESCE((SELECT MAX(id) FROM "${table}"), 1))`,
+  );
+}
+
 async function main() {
   for (const category of PRESET_CATEGORIES) {
     await prisma.category.upsert({
@@ -22,6 +28,9 @@ async function main() {
       create: { id: location.id, name: location.name, userId: null },
     });
   }
+
+  await syncIdSequence('Category');
+  await syncIdSequence('StorageLocation');
 }
 
 main()

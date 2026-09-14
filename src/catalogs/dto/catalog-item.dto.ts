@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class CatalogItemDto {
   @ApiProperty()
-  id!: string;
+  id!: number;
 
   @ApiProperty()
   name!: string;

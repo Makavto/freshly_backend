@@ -6,11 +6,19 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthTokensDto } from './dto/auth-tokens.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { UserResponseDto } from './dto/user-response.dto';
+
+type UserRecord = {
+  id: number;
+  email: string;
+  nickname: string;
+};
 
 @Injectable()
 export class AuthService {
@@ -21,18 +29,32 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthTokensDto> {
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-    if (existing) {
+    const [existingEmail, existingNickname] = await Promise.all([
+      this.prisma.user.findUnique({ where: { email: dto.email } }),
+      this.prisma.user.findFirst({
+        where: { nickname: { equals: dto.nickname, mode: 'insensitive' } },
+      }),
+    ]);
+    if (existingEmail) {
       throw new ConflictException('Email is already registered');
+    }
+    if (existingNickname) {
+      throw new ConflictException('Nickname is already taken');
     }
 
     const passwordHash = await argon2.hash(dto.password);
-    const user = await this.prisma.user.create({
-      data: { email: dto.email, passwordHash },
-    });
-    return this.issueTokens(user.id, user.email);
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: dto.email,
+          nickname: dto.nickname,
+          passwordHash,
+        },
+      });
+      return this.issueTokens(user);
+    } catch (error) {
+      this.rethrowUnique(error);
+    }
   }
 
   async login(dto: LoginDto): Promise<AuthTokensDto> {
@@ -48,7 +70,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.issueTokens(user.id, user.email);
+    return this.issueTokens(user);
   }
 
   async refresh(refreshToken: string): Promise<AuthTokensDto> {
@@ -79,7 +101,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    return this.issueTokens(user.id, user.email);
+    return this.issueTokens(user);
   }
 
   async logout(refreshToken: string): Promise<void> {
@@ -90,17 +112,24 @@ export class AuthService {
     });
   }
 
-  private async issueTokens(
-    userId: string,
-    email: string,
-  ): Promise<AuthTokensDto> {
+  async getMe(userId: number): Promise<UserResponseDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    return this.toUserDto(user);
+  }
+
+  private async issueTokens(user: UserRecord): Promise<AuthTokensDto> {
     const accessExpiresIn =
       this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m';
     const refreshExpiresIn =
       this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
 
     const accessToken = await this.jwt.signAsync(
-      { sub: userId, email },
+      { sub: user.id, email: user.email },
       {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         expiresIn: accessExpiresIn as `${number}${'s' | 'm' | 'h' | 'd'}`,
@@ -108,7 +137,7 @@ export class AuthService {
     );
 
     const refreshToken = await this.jwt.signAsync(
-      { sub: userId },
+      { sub: user.id },
       {
         secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
         expiresIn: refreshExpiresIn as `${number}${'s' | 'm' | 'h' | 'd'}`,
@@ -121,22 +150,59 @@ export class AuthService {
     }
     await this.prisma.refreshToken.create({
       data: {
-        userId,
+        userId: user.id,
         tokenHash: this.hashToken(refreshToken),
         expiresAt: new Date(decoded.exp * 1000),
       },
     });
 
-    return { accessToken, refreshToken };
+    return {
+      accessToken,
+      refreshToken,
+      user: this.toUserDto(user),
+    };
+  }
+
+  private toUserDto(user: UserRecord): UserResponseDto {
+    return {
+      id: user.id,
+      email: user.email,
+      nickname: user.nickname,
+    };
+  }
+
+  private rethrowUnique(error: unknown): never {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      const target = error.meta?.target;
+      const fields = Array.isArray(target)
+        ? target.filter((item): item is string => typeof item === 'string')
+        : [];
+      if (fields.includes('nickname')) {
+        throw new ConflictException('Nickname is already taken');
+      }
+      throw new ConflictException('Email is already registered');
+    }
+    throw error;
   }
 
   private async verifyRefreshToken(
     refreshToken: string,
-  ): Promise<{ sub: string }> {
+  ): Promise<{ sub: number }> {
     try {
-      return await this.jwt.verifyAsync<{ sub: string }>(refreshToken, {
-        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
-      });
+      const payload = await this.jwt.verifyAsync<{ sub: number | string }>(
+        refreshToken,
+        {
+          secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+        },
+      );
+      const sub = Number(payload.sub);
+      if (!Number.isInteger(sub) || sub < 1) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+      return { sub };
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
