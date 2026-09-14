@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    ports:
+      - '3000:3000'
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://freshly:freshly@postgres:5432/freshly?schema=public
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_PUBLIC_URL: http://localhost:9000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started

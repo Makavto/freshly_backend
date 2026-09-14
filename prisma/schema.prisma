@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductUnit {
+  PIECE
+  GRAM
+  KILOGRAM
+  MILLILITER
+  LITER
+  PACK
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens    RefreshToken[]
+  products         Product[]
+  categories       Category[]
+  storageLocations StorageLocation[]
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@index([userId])
+}
+
+model StorageLocation {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@index([userId])
+}
+
+model Product {
+  id                String       @id @default(uuid())
+  userId            String
+  name              String
+  expiresAt         DateTime     @db.Date
+  quantity          Decimal      @default(1) @db.Decimal(10, 2)
+  unit              ProductUnit?
+  categoryId        String
+  storageLocationId String
+  photoKey          String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        Category        @relation(fields: [categoryId], references: [id])
+  storageLocation StorageLocation @relation(fields: [storageLocationId], references: [id])
+
+  @@index([userId])
+  @@index([userId, expiresAt])
+  @@index([userId, name])
+  @@index([categoryId])
+  @@index([storageLocationId])
+}
