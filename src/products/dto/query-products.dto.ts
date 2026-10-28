@@ -1,10 +1,19 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 import { ProductStatus } from '../product-status';
 
 export enum ProductSortBy {
   EXPIRES_AT = 'expiresAt',
+  PRODUCED_AT = 'producedAt',
   NAME = 'name',
   CREATED_AT = 'createdAt',
 }
@@ -41,6 +50,24 @@ export class QueryProductsDto {
   @IsOptional()
   @IsEnum(ProductStatus)
   status?: ProductStatus;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Transform(({ obj }: { obj: Record<string, unknown> }) => {
+    const value = obj.isConsumed;
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    if (value === true || value === 'true') {
+      return true;
+    }
+    if (value === false || value === 'false') {
+      return false;
+    }
+    return value;
+  })
+  @IsBoolean()
+  isConsumed?: boolean;
 
   @ApiPropertyOptional({
     enum: ProductSortBy,

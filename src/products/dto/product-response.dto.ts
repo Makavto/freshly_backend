@@ -10,6 +10,9 @@ export class ProductResponseDto {
   @ApiProperty()
   name!: string;
 
+  @ApiProperty({ example: '2026-09-01' })
+  producedAt!: string;
+
   @ApiProperty({ example: '2026-12-31' })
   expiresAt!: string;
 
@@ -33,6 +36,9 @@ export class ProductResponseDto {
 
   @ApiProperty({ enum: ProductStatus })
   status!: ProductStatus;
+
+  @ApiProperty()
+  isConsumed!: boolean;
 
   @ApiPropertyOptional({ nullable: true })
   photoUrl!: string | null;

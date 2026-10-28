@@ -90,6 +90,16 @@ export class ProductsController {
     return this.productsService.update(user.id, id, dto);
   }
 
+  @Patch(':id/consume')
+  @ApiOperation({ summary: 'Отметить продукт как употреблённый' })
+  @ApiOkResponse({ type: ProductResponseDto })
+  consume(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ProductResponseDto> {
+    return this.productsService.consume(user.id, id);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Удалить продукт' })

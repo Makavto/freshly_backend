@@ -55,12 +55,14 @@ CREATE TABLE "Product" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
+    "producedAt" DATE NOT NULL,
     "expiresAt" DATE NOT NULL,
     "quantity" DECIMAL(10,2) NOT NULL DEFAULT 1,
     "unit" "ProductUnit",
     "categoryId" INTEGER NOT NULL,
     "storageLocationId" INTEGER NOT NULL,
     "photoKey" TEXT,
+    "isConsumed" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -90,6 +92,12 @@ CREATE INDEX "StorageLocation_userId_idx" ON "StorageLocation"("userId");
 
 -- CreateIndex
 CREATE INDEX "Product_userId_idx" ON "Product"("userId");
+
+-- CreateIndex
+CREATE INDEX "Product_userId_isConsumed_idx" ON "Product"("userId", "isConsumed");
+
+-- CreateIndex
+CREATE INDEX "Product_userId_producedAt_idx" ON "Product"("userId", "producedAt");
 
 -- CreateIndex
 CREATE INDEX "Product_userId_expiresAt_idx" ON "Product"("userId", "expiresAt");

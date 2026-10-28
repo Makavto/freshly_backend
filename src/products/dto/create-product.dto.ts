@@ -23,6 +23,10 @@ export class CreateProductDto {
   @MaxLength(200)
   name!: string;
 
+  @ApiProperty({ example: '2026-09-01' })
+  @IsDateString()
+  producedAt!: string;
+
   @ApiProperty({ example: '2026-12-31' })
   @IsDateString()
   expiresAt!: string;

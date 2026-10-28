@@ -20,7 +20,11 @@ import {
 } from './dto/product-response.dto';
 import { QueryProductsDto } from './dto/query-products.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { getProductStatus, statusToExpiresAtFilter } from './product-status';
+import {
+  getProductStatus,
+  statusToExpiresAtFilter,
+  utcDateOnly,
+} from './product-status';
 
 const ALLOWED_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
@@ -46,11 +50,16 @@ export class ProductsService {
       dto.storageLocationId ?? DEFAULT_STORAGE_LOCATION_ID;
     await this.assertCatalogAccess(userId, categoryId, storageLocationId);
 
+    const producedAt = new Date(dto.producedAt);
+    const expiresAt = new Date(dto.expiresAt);
+    this.assertProductDates(producedAt, expiresAt);
+
     const product = await this.prisma.product.create({
       data: {
         userId,
         name: dto.name,
-        expiresAt: new Date(dto.expiresAt),
+        producedAt,
+        expiresAt,
         quantity: dto.quantity ?? 1,
         unit: dto.unit ?? null,
         categoryId,
@@ -87,6 +96,9 @@ export class ProductsService {
         new Date(),
         expiringSoonDays,
       );
+    }
+    if (query.isConsumed !== undefined) {
+      where.isConsumed = query.isConsumed;
     }
 
     const [items, total] = await this.prisma.$transaction([
@@ -127,13 +139,20 @@ export class ProductsService {
       );
     }
 
+    const producedAt =
+      dto.producedAt !== undefined
+        ? new Date(dto.producedAt)
+        : current.producedAt;
+    const expiresAt =
+      dto.expiresAt !== undefined ? new Date(dto.expiresAt) : current.expiresAt;
+    this.assertProductDates(producedAt, expiresAt);
+
     const product = await this.prisma.product.update({
       where: { id },
       data: {
         ...(dto.name !== undefined ? { name: dto.name } : {}),
-        ...(dto.expiresAt !== undefined
-          ? { expiresAt: new Date(dto.expiresAt) }
-          : {}),
+        ...(dto.producedAt !== undefined ? { producedAt } : {}),
+        ...(dto.expiresAt !== undefined ? { expiresAt } : {}),
         ...(dto.quantity !== undefined ? { quantity: dto.quantity } : {}),
         ...(dto.unit !== undefined ? { unit: dto.unit } : {}),
         ...(dto.categoryId !== undefined ? { categoryId: dto.categoryId } : {}),
@@ -144,6 +163,19 @@ export class ProductsService {
       include: { category: true, storageLocation: true },
     });
     return this.toResponse(product);
+  }
+
+  async consume(userId: number, id: number): Promise<ProductResponseDto> {
+    const product = await this.getOwnedProduct(userId, id);
+    if (product.isConsumed) {
+      return this.toResponse(product);
+    }
+    const updated = await this.prisma.product.update({
+      where: { id },
+      data: { isConsumed: true },
+      include: { category: true, storageLocation: true },
+    });
+    return this.toResponse(updated);
   }
 
   async remove(userId: number, id: number): Promise<void> {
@@ -260,7 +292,8 @@ export class ProductsService {
     return {
       id: product.id,
       name: product.name,
-      expiresAt: product.expiresAt.toISOString().slice(0, 10),
+      producedAt: toDateString(product.producedAt),
+      expiresAt: toDateString(product.expiresAt),
       quantity: product.quantity.toNumber(),
       unit: product.unit,
       categoryId: product.categoryId,
@@ -280,6 +313,7 @@ export class ProductsService {
         new Date(),
         this.expiringSoonDays(),
       ),
+      isConsumed: product.isConsumed,
       photoUrl: product.photoKey
         ? await this.storage.getUrl(product.photoKey)
         : null,
@@ -288,7 +322,17 @@ export class ProductsService {
     };
   }
 
+  private assertProductDates(producedAt: Date, expiresAt: Date): void {
+    if (utcDateOnly(producedAt) > utcDateOnly(expiresAt)) {
+      throw new BadRequestException('producedAt must not be after expiresAt');
+    }
+  }
+
   private expiringSoonDays(): number {
     return this.config.get<number>('EXPIRING_SOON_DAYS') ?? 3;
   }
+}
+
+function toDateString(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }

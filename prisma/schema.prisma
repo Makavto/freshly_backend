@@ -74,12 +74,14 @@ model Product {
   id                Int          @id @default(autoincrement())
   userId            Int
   name              String
+  producedAt        DateTime     @db.Date
   expiresAt         DateTime     @db.Date
   quantity          Decimal      @default(1) @db.Decimal(10, 2)
   unit              ProductUnit?
   categoryId        Int
   storageLocationId Int
   photoKey          String?
+  isConsumed        Boolean      @default(false)
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
@@ -88,6 +90,8 @@ model Product {
   storageLocation StorageLocation @relation(fields: [storageLocationId], references: [id])
 
   @@index([userId])
+  @@index([userId, isConsumed])
+  @@index([userId, producedAt])
   @@index([userId, expiresAt])
   @@index([userId, name])
   @@index([categoryId])
