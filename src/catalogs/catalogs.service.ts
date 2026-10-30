@@ -1,7 +1,11 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, ProductUnit } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CatalogItemDto, StatusItemDto } from './dto/catalog-item.dto';
+import {
+  CatalogItemDto,
+  StatusItemDto,
+  UnitItemDto,
+} from './dto/catalog-item.dto';
 import { CreateCatalogItemDto } from './dto/create-catalog-item.dto';
 
 @Injectable()
@@ -54,16 +58,27 @@ export class CatalogsService {
 
   listStatuses(): StatusItemDto[] {
     return [
-      { value: 'fresh', label: 'свежий' },
-      { value: 'expiring_soon', label: 'скоро истекает' },
-      { value: 'expired', label: 'просрочен' },
+      { id: 'fresh', label: 'свежий' },
+      { id: 'expiring_soon', label: 'скоро истекает' },
+      { id: 'expired', label: 'просрочен' },
+    ];
+  }
+
+  listUnits(): UnitItemDto[] {
+    return [
+      { id: ProductUnit.PIECE, label: 'штука' },
+      { id: ProductUnit.GRAM, label: 'грамм' },
+      { id: ProductUnit.KILOGRAM, label: 'килограмм' },
+      { id: ProductUnit.MILLILITER, label: 'миллилитр' },
+      { id: ProductUnit.LITER, label: 'литр' },
+      { id: ProductUnit.PACK, label: 'упаковка' },
     ];
   }
 
   private toDto(item: { id: number; name: string; userId: number | null }) {
     return {
       id: item.id,
-      name: item.name,
+      label: item.name,
       isPreset: item.userId === null,
     };
   }

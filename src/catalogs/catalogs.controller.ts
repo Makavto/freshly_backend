@@ -10,7 +10,11 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import type { AuthUser } from '../auth/types/auth-user';
 import { CatalogsService } from './catalogs.service';
-import { CatalogItemDto, StatusItemDto } from './dto/catalog-item.dto';
+import {
+  CatalogItemDto,
+  StatusItemDto,
+  UnitItemDto,
+} from './dto/catalog-item.dto';
 import { CreateCatalogItemDto } from './dto/create-catalog-item.dto';
 
 @ApiTags('catalogs')
@@ -61,5 +65,12 @@ export class CatalogsController {
   @ApiOkResponse({ type: StatusItemDto, isArray: true })
   listStatuses(): StatusItemDto[] {
     return this.catalogsService.listStatuses();
+  }
+
+  @Get('units')
+  @ApiOperation({ summary: 'Единицы измерения продуктов' })
+  @ApiOkResponse({ type: UnitItemDto, isArray: true })
+  listUnits(): UnitItemDto[] {
+    return this.catalogsService.listUnits();
   }
 }

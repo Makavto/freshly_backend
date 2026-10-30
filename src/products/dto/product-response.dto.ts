@@ -16,23 +16,23 @@ export class ProductResponseDto {
   @ApiProperty({ example: '2026-12-31' })
   expiresAt!: string;
 
-  @ApiProperty()
-  quantity!: number;
+  @ApiPropertyOptional({ nullable: true })
+  quantity!: number | null;
 
   @ApiPropertyOptional({ enum: ProductUnit, nullable: true })
   unit!: ProductUnit | null;
 
-  @ApiProperty()
-  categoryId!: number;
+  @ApiPropertyOptional({ nullable: true })
+  categoryId!: number | null;
 
-  @ApiProperty()
-  storageLocationId!: number;
+  @ApiPropertyOptional({ nullable: true })
+  storageLocationId!: number | null;
 
-  @ApiProperty({ type: CatalogItemDto })
-  category!: CatalogItemDto;
+  @ApiPropertyOptional({ type: CatalogItemDto, nullable: true })
+  category!: CatalogItemDto | null;
 
-  @ApiProperty({ type: CatalogItemDto })
-  storageLocation!: CatalogItemDto;
+  @ApiPropertyOptional({ type: CatalogItemDto, nullable: true })
+  storageLocation!: CatalogItemDto | null;
 
   @ApiProperty({ enum: ProductStatus })
   status!: ProductStatus;

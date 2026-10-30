@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProductUnit } from '@prisma/client';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsDateString,
   IsEnum,
@@ -31,29 +31,39 @@ export class CreateProductDto {
   @IsDateString()
   expiresAt!: string;
 
-  @ApiPropertyOptional({ default: 1 })
+  @ApiPropertyOptional({ nullable: true })
   @IsOptional()
-  @Type(() => Number)
+  @Transform(({ value }: { value: unknown }) => toOptionalNumber(value))
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
-  quantity?: number;
+  quantity?: number | null;
 
-  @ApiPropertyOptional({ enum: ProductUnit })
+  @ApiPropertyOptional({ enum: ProductUnit, nullable: true })
   @IsOptional()
   @IsEnum(ProductUnit)
-  unit?: ProductUnit;
+  unit?: ProductUnit | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true })
   @IsOptional()
-  @Type(() => Number)
+  @Transform(({ value }: { value: unknown }) => toOptionalNumber(value))
   @IsInt()
   @Min(1)
-  categoryId?: number;
+  categoryId?: number | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true })
   @IsOptional()
-  @Type(() => Number)
+  @Transform(({ value }: { value: unknown }) => toOptionalNumber(value))
   @IsInt()
   @Min(1)
-  storageLocationId?: number;
+  storageLocationId?: number | null;
+}
+
+function toOptionalNumber(value: unknown): number | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null || value === '') {
+    return null;
+  }
+  return Number(value);
 }

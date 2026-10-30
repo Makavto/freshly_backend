@@ -7,10 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { GUEST_PRODUCT_LIMIT } from '../auth/guest.constants';
-import {
-  DEFAULT_CATEGORY_ID,
-  DEFAULT_STORAGE_LOCATION_ID,
-} from '../catalogs/catalog.constants';
+import { CatalogItemDto } from '../catalogs/dto/catalog-item.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileStorage } from '../storage/file-storage';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -45,10 +42,11 @@ export class ProductsService {
     dto: CreateProductDto,
   ): Promise<ProductResponseDto> {
     await this.assertGuestProductLimit(userId);
-    const categoryId = dto.categoryId ?? DEFAULT_CATEGORY_ID;
-    const storageLocationId =
-      dto.storageLocationId ?? DEFAULT_STORAGE_LOCATION_ID;
-    await this.assertCatalogAccess(userId, categoryId, storageLocationId);
+    await this.assertCatalogAccess(
+      userId,
+      dto.categoryId,
+      dto.storageLocationId,
+    );
 
     const producedAt = new Date(dto.producedAt);
     const expiresAt = new Date(dto.expiresAt);
@@ -60,10 +58,10 @@ export class ProductsService {
         name: dto.name,
         producedAt,
         expiresAt,
-        quantity: dto.quantity ?? 1,
+        quantity: dto.quantity ?? null,
         unit: dto.unit ?? null,
-        categoryId,
-        storageLocationId,
+        categoryId: dto.categoryId ?? null,
+        storageLocationId: dto.storageLocationId ?? null,
       },
       include: { category: true, storageLocation: true },
     });
@@ -131,11 +129,11 @@ export class ProductsService {
     dto: UpdateProductDto,
   ): Promise<ProductResponseDto> {
     const current = await this.getOwnedProduct(userId, id);
-    if (dto.categoryId || dto.storageLocationId) {
+    if (dto.categoryId != null || dto.storageLocationId != null) {
       await this.assertCatalogAccess(
         userId,
-        dto.categoryId ?? current.categoryId,
-        dto.storageLocationId ?? current.storageLocationId,
+        dto.categoryId,
+        dto.storageLocationId,
       );
     }
 
@@ -258,21 +256,28 @@ export class ProductsService {
 
   private async assertCatalogAccess(
     userId: number,
-    categoryId: number,
-    storageLocationId: number,
+    categoryId?: number | null,
+    storageLocationId?: number | null,
   ): Promise<void> {
     const [category, location] = await Promise.all([
-      this.prisma.category.findFirst({
-        where: { id: categoryId, OR: [{ userId: null }, { userId }] },
-      }),
-      this.prisma.storageLocation.findFirst({
-        where: { id: storageLocationId, OR: [{ userId: null }, { userId }] },
-      }),
+      categoryId != null
+        ? this.prisma.category.findFirst({
+            where: { id: categoryId, OR: [{ userId: null }, { userId }] },
+          })
+        : Promise.resolve(null),
+      storageLocationId != null
+        ? this.prisma.storageLocation.findFirst({
+            where: {
+              id: storageLocationId,
+              OR: [{ userId: null }, { userId }],
+            },
+          })
+        : Promise.resolve(null),
     ]);
-    if (!category) {
+    if (categoryId != null && !category) {
       throw new BadRequestException('Category is not available');
     }
-    if (!location) {
+    if (storageLocationId != null && !location) {
       throw new BadRequestException('Storage location is not available');
     }
   }
@@ -294,20 +299,12 @@ export class ProductsService {
       name: product.name,
       producedAt: toDateString(product.producedAt),
       expiresAt: toDateString(product.expiresAt),
-      quantity: product.quantity.toNumber(),
+      quantity: product.quantity?.toNumber() ?? null,
       unit: product.unit,
       categoryId: product.categoryId,
       storageLocationId: product.storageLocationId,
-      category: {
-        id: product.category.id,
-        name: product.category.name,
-        isPreset: product.category.userId === null,
-      },
-      storageLocation: {
-        id: product.storageLocation.id,
-        name: product.storageLocation.name,
-        isPreset: product.storageLocation.userId === null,
-      },
+      category: toCatalogItem(product.category),
+      storageLocation: toCatalogItem(product.storageLocation),
       status: getProductStatus(
         product.expiresAt,
         new Date(),
@@ -335,4 +332,17 @@ export class ProductsService {
 
 function toDateString(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+function toCatalogItem(
+  item: { id: number; name: string; userId: number | null } | null,
+): CatalogItemDto | null {
+  if (!item) {
+    return null;
+  }
+  return {
+    id: item.id,
+    label: item.name,
+    isPreset: item.userId === null,
+  };
 }
